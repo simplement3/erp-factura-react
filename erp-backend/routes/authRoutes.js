@@ -15,31 +15,42 @@ const pool = new Pool({
 
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ success: false, error: 'Email y contraseña son obligatorios' });
-    }
 
     try {
-        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        // Validar entrada
+        if (!email || !password) {
+            return res.status(400).json({ success: false, error: 'Correo y contraseña son obligatorios' });
+        }
+
+        // Buscar usuario
+        const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
         const user = result.rows[0];
 
         if (!user) {
-            return res.status(401).json({ success: false, error: 'Credenciales inválidas' });
+            return res.status(401).json({ success: false, error: 'Correo o contraseña incorrectos' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, error: 'Credenciales inválidas' });
+        // Comparar contraseña
+        const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+        if (!isPasswordValid) {
+            return res.status(401).json({ success: false, error: 'Correo o contraseña incorrectos' });
         }
 
-        const token = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET, {
-            expiresIn: '1h',
+        // Generar token JWT
+        const token = jwt.sign(
+            { userId: user.id, email: user.email, rol: user.rol, id_negocio: user.id_negocio },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        res.json({
+            success: true,
+            token,
+            user: { id: user.id, email: user.email, rol: user.rol, id_negocio: user.id_negocio },
         });
-
-        res.json({ success: true, token, user: user.email });
     } catch (error) {
         console.error('Error en login:', error);
-        res.status(500).json({ success: false, error: 'Error del servidor' });
+        res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
 });
 

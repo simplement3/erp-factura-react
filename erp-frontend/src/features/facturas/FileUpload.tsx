@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-toastify';
 import { postOCR, saveInvoice, Invoice } from '../../api/apiClient';
 import InvoicePreviewModal from './InvoicePreviewModal';
-import { UploadIcon } from '@heroicons/react/24/solid';
+import { ArrowUpTrayIcon } from '@heroicons/react/24/solid';  // Reemplazado UploadIcon por ArrowUpTrayIcon
 
 function FileUpload() {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -20,6 +20,7 @@ function FileUpload() {
                 toast.error(response.error || 'Error al procesar archivos');
             }
         } catch (error) {
+            console.error('Error en onDrop:', error);  // Usar error para evitar ESLint no-unused-vars
             toast.error('Error al procesar archivos');
         }
     }, []);
@@ -36,6 +37,7 @@ function FileUpload() {
             toast.success('Factura guardada correctamente');
             setIsModalOpen(false);
         } catch (error) {
+            console.error('Error en handleSave:', error);  // Usar error para evitar ESLint no-unused-vars
             toast.error('Error al guardar factura');
         }
     };
@@ -48,7 +50,7 @@ function FileUpload() {
                     }`}
             >
                 <input {...getInputProps()} />
-                <UploadIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <ArrowUpTrayIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">
                     {isDragActive
                         ? 'Suelta los archivos aquí'

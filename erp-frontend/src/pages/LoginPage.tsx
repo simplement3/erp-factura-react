@@ -35,6 +35,7 @@ function LoginPage() {
                 toast.error(response.error || 'Error al iniciar sesión');
             }
         } catch (error) {
+            console.error('Error en onSubmit:', error);  // Usar error para evitar ESLint no-unused-vars
             toast.error('Error al iniciar sesión');
         }
     };

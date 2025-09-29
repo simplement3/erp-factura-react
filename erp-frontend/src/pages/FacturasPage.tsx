@@ -5,7 +5,7 @@ import { getFacturas, deleteInvoice, generateDTE } from '../api/apiClient';
 import { Invoice } from '../api/apiClient';
 import FileUpload from '../features/facturas/FileUpload';
 import DTEConfirmationModal from '../features/facturas/DTEConfirmationModal';
-import { PencilIcon, TrashIcon, DocumentTextIcon, ReceiptTaxIcon, DocumentDownloadIcon } from '@heroicons/react/24/solid';
+import { TrashIcon, DocumentTextIcon, ReceiptPercentIcon, ArrowDownTrayIcon } from '@heroicons/react/24/solid';  // Reemplazos: ReceiptTaxIcon -> ReceiptPercentIcon, DocumentDownloadIcon -> ArrowDownTrayIcon; eliminado PencilIcon no usado
 import { format } from 'date-fns';
 
 interface DTEData {
@@ -80,7 +80,7 @@ function FacturasPage() {
                 invoice.dte_folio || '-',
             ]),
         ]
-            .map(row => row.map(cell => `"${cell}"`).join(','))
+            .map(row => row.map((cell: string | number | undefined) => `"${cell ?? '-'}"`).join(','))
             .join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -99,7 +99,7 @@ function FacturasPage() {
         }
 
         const facturas = data?.data || [];
-        const { page: currentPage, limit, total, pages } = data?.pagination || {};
+        const { page: currentPage, total, pages } = data?.pagination || {};  // Eliminado 'limit' no usado
 
         return (
             <>
@@ -166,7 +166,7 @@ function FacturasPage() {
                                                                     }
                                                                     disabled={generateDTEMutation.isPending}
                                                                 >
-                                                                    <ReceiptTaxIcon className="w-4 h-4 mr-1" /> Boleta
+                                                                    <ReceiptPercentIcon className="w-4 h-4 mr-1" /> Boleta
                                                                 </button>
                                                             </>
                                                         )}
@@ -274,7 +274,7 @@ function FacturasPage() {
                     onClick={handleExport}
                     className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
                 >
-                    <DocumentDownloadIcon className="w-5 h-5 mr-2" /> Exportar CSV
+                    <ArrowDownTrayIcon className="w-5 h-5 mr-2" /> Exportar CSV
                 </button>
             </div>
             {renderContent()}

@@ -33,8 +33,8 @@ apiClient.interceptors.response.use(
 export interface InvoiceItem {
     id?: number;
     producto_insumo: string;
-    categoria: string;
-    unidad_medida: string;
+    categoria?: string;  // Hecho opcional para resolver error de tipo
+    unidad_medida?: string;  // Hecho opcional para resolver error de tipo
     cantidad: number;
     precio_unitario: number;
     valor_afecto: number;
@@ -131,5 +131,6 @@ export const getDashboardStats = async () => {
     const response = await apiClient.get('/sii/dashboard-stats');
     return response.data;
 };
+
 
 export default apiClient;
