@@ -88,61 +88,56 @@ router.get('/listar', async (req, res) => {
     const offset = (page - 1) * limit;
 
     try {
-        let query = `
-      SELECT f.*, 
-             (SELECT json_agg(
-                json_build_object(
-                  'id', fi.id,
-                  'producto_insumo', fi.producto_insumo,
-                  'categoria', fi.categoria,
-                  'unidad_medida', fi.unidad_medida,
-                  'cantidad', fi.cantidad,
-                  'precio_unitario', fi.precio_unitario,
-                  'valor_afecto', fi.valor_afecto,
-                  'valor_inafecto', fi.valor_inafecto,
-                  'impuestos', fi.impuestos,
-                  'total', fi.total
-                )
-             ) FROM factura_items fi WHERE fi.factura_id = f.id) as items
-      FROM facturas f
-      WHERE 1=1
-    `;
+        let whereClause = 'WHERE 1=1';
         const params = [];
         let paramIndex = 1;
 
         if (estado) {
-            query += ` AND f.dte_estado = $${paramIndex++}`;
+            whereClause += ` AND f.dte_estado = $${paramIndex++}`;
             params.push(estado);
         }
         if (tipo_dte) {
-            query += ` AND f.dte_tipo = $${paramIndex++}`;
+            whereClause += ` AND f.dte_tipo = $${paramIndex++}`;
             params.push(tipo_dte);
         }
         if (fecha_inicio) {
-            query += ` AND f.fecha_factura >= $${paramIndex++}`;
+            whereClause += ` AND f.fecha_factura >= $${paramIndex++}`;
             params.push(fecha_inicio);
         }
         if (fecha_fin) {
-            query += ` AND f.fecha_factura <= $${paramIndex++}`;
+            whereClause += ` AND f.fecha_factura <= $${paramIndex++}`;
             params.push(fecha_fin);
         }
 
-        query += ` ORDER BY f.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
-        params.push(limit, offset);
+        const countQuery = `SELECT COUNT(*) as total FROM facturas f ${whereClause}`;
+        const filterParams = [...params]; // Copia de parámetros para la consulta de conteo
 
-        const countQuery = `
-      SELECT COUNT(*) as total
-      FROM facturas f
-      WHERE 1=1
-      ${estado ? `AND f.dte_estado = $${params.length + 1}` : ''}
-      ${tipo_dte ? `AND f.dte_tipo = $${params.length + 2}` : ''}
-      ${fecha_inicio ? `AND f.fecha_factura >= $${params.length + 3}` : ''}
-      ${fecha_fin ? `AND f.fecha_factura <= $${params.length + 4}` : ''}
-    `;
+        const query = `
+            SELECT f.*, 
+                   (SELECT json_agg(
+                      json_build_object(
+                        'id', fi.id,
+                        'producto_insumo', fi.producto_insumo,
+                        'categoria', fi.categoria,
+                        'unidad_medida', fi.unidad_medida,
+                        'cantidad', fi.cantidad,
+                        'precio_unitario', fi.precio_unitario,
+                        'valor_afecto', fi.valor_afecto,
+                        'valor_inafecto', fi.valor_inafecto,
+                        'impuestos', fi.impuestos,
+                        'total', fi.total
+                      )
+                   ) FROM factura_items fi WHERE fi.factura_id = f.id) as items
+            FROM facturas f
+            ${whereClause}
+            ORDER BY f.created_at DESC 
+            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+        `;
+        params.push(limit, offset); // Agrega parámetros de paginación solo a la consulta principal
 
         const [facturasResult, countResult] = await Promise.all([
             pool.query(query, params),
-            pool.query(countQuery, params.slice(0, paramIndex - 2)),
+            pool.query(countQuery, filterParams),
         ]);
 
         const facturas = facturasResult.rows;
