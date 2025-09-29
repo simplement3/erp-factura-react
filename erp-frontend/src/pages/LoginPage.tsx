@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../features/auth/AuthContext';
+import { useAuth } from '../features/auth/useAuth';
 import { toast } from 'react-toastify';
 import { login } from '../api/apiClient';
 
@@ -28,14 +28,21 @@ function LoginPage() {
         try {
             const response = await login(data);
             if (response.success) {
-                authLogin(response.token, response.user);
+                // Verificar que response.user tenga la estructura correcta
+                const user = {
+                    id: response.user.id,
+                    email: response.user.email,
+                    rol: response.user.rol,
+                    id_negocio: response.user.id_negocio,
+                };
+                authLogin(response.token, user);
                 toast.success('Inicio de sesión exitoso');
                 navigate('/facturas');
             } else {
                 toast.error(response.error || 'Error al iniciar sesión');
             }
         } catch (error) {
-            console.error('Error en onSubmit:', error);  // Usar error para evitar ESLint no-unused-vars
+            console.error('Error en login:', error);
             toast.error('Error al iniciar sesión');
         }
     };
@@ -52,26 +59,21 @@ function LoginPage() {
                         id="email"
                         type="email"
                         {...register('email')}
-                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.email ? 'border-red-500' : ''
-                            }`}
+                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.email ? 'border-red-500' : ''}`}
                     />
                     {errors.email && (
                         <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
                     )}
                 </div>
                 <div>
-                    <label
-                        htmlFor="password"
-                        className="block text-sm font-medium text-gray-700"
-                    >
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                         Contraseña
                     </label>
                     <input
                         id="password"
                         type="password"
                         {...register('password')}
-                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.password ? 'border-red-500' : ''
-                            }`}
+                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.password ? 'border-red-500' : ''}`}
                     />
                     {errors.password && (
                         <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>

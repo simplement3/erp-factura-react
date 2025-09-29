@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const apiClient = axios.create({
     baseURL: 'http://localhost:5002/api',
@@ -21,20 +22,27 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        if (
+            (error.response?.status === 401 || error.response?.status === 403) &&
+            !error.config.url.includes('/login')
+        ) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            toast.error('Sesión inválida o expirada. Por favor, inicia sesión nuevamente.');
             window.location.href = '/login';
+        } else if (error.response?.status) {
+            toast.error(error.response.data?.error || 'Error en la solicitud');
         }
         return Promise.reject(error);
     }
 );
 
+// Resto del código permanece igual
 export interface InvoiceItem {
     id?: number;
     producto_insumo: string;
-    categoria?: string;  // Hecho opcional para resolver error de tipo
-    unidad_medida?: string;  // Hecho opcional para resolver error de tipo
+    categoria?: string;
+    unidad_medida?: string;
     cantidad: number;
     precio_unitario: number;
     valor_afecto: number;
@@ -67,13 +75,13 @@ export interface SIIConfig {
     id?: number;
     rut_empresa: string;
     nombre_empresa: string;
-    giro_empresa: string;
-    actividad_economica: string;
-    direccion: string;
-    comuna: string;
-    ciudad: string;
-    telefono: string;
-    email: string;
+    giro_empresa?: string;
+    actividad_economica?: string;
+    direccion?: string;
+    comuna?: string;
+    ciudad?: string;
+    telefono?: string;
+    email?: string;
     ambiente: 'certificacion' | 'produccion';
 }
 
@@ -131,6 +139,5 @@ export const getDashboardStats = async () => {
     const response = await apiClient.get('/sii/dashboard-stats');
     return response.data;
 };
-
 
 export default apiClient;

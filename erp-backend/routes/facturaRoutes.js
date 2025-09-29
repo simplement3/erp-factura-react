@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { processInvoice } = require('../deepseekServices');
 const { Pool } = require('pg');
+const authMiddleware = require('../middleware/authMiddleware');
 require('dotenv').config();
 
 const router = express.Router();
@@ -17,7 +18,7 @@ const pool = new Pool({
 
 const upload = multer({ dest: 'uploads/' });
 
-router.post('/ocr', upload.array('files'), async (req, res) => {
+router.post('/ocr', authMiddleware, upload.array('files'), async (req, res) => {
     try {
         const files = req.files;
         if (!files || files.length === 0) {
@@ -42,7 +43,7 @@ router.post('/ocr', upload.array('files'), async (req, res) => {
     }
 });
 
-router.post('/guardar', async (req, res) => {
+router.post('/guardar', authMiddleware, async (req, res) => {
     const {
         fecha_factura, serie, numero, ruc, proveedor, valor_afecto,
         valor_inafecto, impuestos, importe, moneda, archivo_original, items
@@ -83,7 +84,7 @@ router.post('/guardar', async (req, res) => {
     }
 });
 
-router.get('/listar', async (req, res) => {
+router.get('/listar', authMiddleware, async (req, res) => {
     const { page = 1, limit = 50, estado, tipo_dte, fecha_inicio, fecha_fin } = req.query;
     const offset = (page - 1) * limit;
 
@@ -155,7 +156,7 @@ router.get('/listar', async (req, res) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
     try {
         await pool.query('DELETE FROM facturas WHERE id = $1', [id]);

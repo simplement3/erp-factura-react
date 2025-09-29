@@ -5,7 +5,7 @@ import { getFacturas, deleteInvoice, generateDTE } from '../api/apiClient';
 import { Invoice } from '../api/apiClient';
 import FileUpload from '../features/facturas/FileUpload';
 import DTEConfirmationModal from '../features/facturas/DTEConfirmationModal';
-import { TrashIcon, DocumentTextIcon, ReceiptPercentIcon, ArrowDownTrayIcon } from '@heroicons/react/24/solid';  // Reemplazos: ReceiptTaxIcon -> ReceiptPercentIcon, DocumentDownloadIcon -> ArrowDownTrayIcon; eliminado PencilIcon no usado
+import { TrashIcon, DocumentTextIcon, ReceiptPercentIcon, ArrowDownTrayIcon } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
 
 interface DTEData {
@@ -52,7 +52,7 @@ function FacturasPage() {
         onSuccess: (response) => {
             queryClient.invalidateQueries({ queryKey: ['facturas'] });
             toast.success('DTE generado correctamente');
-            setDTEData(response.data); // Asume que el endpoint devuelve { data: { folio, tipo_dte, estado } }
+            setDTEData(response.data);
             setIsDTEModalOpen(true);
         },
         onError: () => toast.error('Error al generar DTE'),
@@ -60,7 +60,7 @@ function FacturasPage() {
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
-        setPage(1); // Resetear página al cambiar filtros
+        setPage(1);
     };
 
     const handleExport = () => {
@@ -92,14 +92,19 @@ function FacturasPage() {
 
     const renderContent = () => {
         if (isLoading) {
-            return <div className="custom-spinner mx-auto mt-10"></div>;
+            return (
+                <div className="flex justify-center items-center h-screen">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+            );
         }
         if (error) {
+            toast.error('Error al cargar facturas');
             return <div className="text-red-600 text-center">Error al cargar facturas</div>;
         }
 
         const facturas = data?.data || [];
-        const { page: currentPage, total, pages } = data?.pagination || {};  // Eliminado 'limit' no usado
+        const { page: currentPage, total, pages } = data?.pagination || {};
 
         return (
             <>

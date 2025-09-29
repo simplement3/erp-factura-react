@@ -1,8 +1,7 @@
-// ===== SIIROUTES.JS MEJORADO CON INTEGRACIÓN ERP =====
-
 const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
+const authMiddleware = require('../middleware/authMiddleware');
 
 const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
@@ -27,7 +26,7 @@ const TIPOS_DTE = {
 
 // ===== ENDPOINT PRINCIPAL GENERAR DTE =====
 
-router.post('/generar-dte', async (req, res) => {
+router.post('/generar-dte', authMiddleware, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -397,7 +396,7 @@ async function crearAsientoContable(client, factura, tipoOperacion) {
 // ===== ENDPOINTS ADICIONALES PARA GESTIÓN DTE =====
 
 // Consultar estado DTE en SII (simulado)
-router.get('/consultar-estado/:factura_id', async (req, res) => {
+router.get('/consultar-estado/:factura_id', authMiddleware, async (req, res) => {
   try {
     const { factura_id } = req.params;
 
@@ -453,7 +452,7 @@ router.get('/consultar-estado/:factura_id', async (req, res) => {
 });
 
 // Descargar XML DTE
-router.get('/descargar-xml/:factura_id', async (req, res) => {
+router.get('/descargar-xml/:factura_id', authMiddleware, async (req, res) => {
   try {
     const { factura_id } = req.params;
 
@@ -484,7 +483,7 @@ router.get('/descargar-xml/:factura_id', async (req, res) => {
 });
 
 // Listar DTEs generados con filtros
-router.get('/listar-dtes', async (req, res) => {
+router.get('/listar-dtes', authMiddleware, async (req, res) => {
   try {
     const {
       page = 1,
@@ -502,22 +501,22 @@ router.get('/listar-dtes', async (req, res) => {
 
     // Filtros opcionales
     if (tipo_dte) {
-      whereConditions.push(`f.dte_tipo = ${paramIndex++}`);
+      whereConditions.push(`f.dte_tipo = $${paramIndex++}`);
       queryParams.push(tipo_dte);
     }
 
     if (estado_sii) {
-      whereConditions.push(`ds.estado_sii = ${paramIndex++}`);
+      whereConditions.push(`ds.estado_sii = $${paramIndex++}`);
       queryParams.push(estado_sii);
     }
 
     if (fecha_desde) {
-      whereConditions.push(`f.fecha_factura >= ${paramIndex++}`);
+      whereConditions.push(`f.fecha_factura >= $${paramIndex++}`);
       queryParams.push(fecha_desde);
     }
 
     if (fecha_hasta) {
-      whereConditions.push(`f.fecha_factura <= ${paramIndex++}`);
+      whereConditions.push(`f.fecha_factura <= $${paramIndex++}`);
       queryParams.push(fecha_hasta);
     }
 
@@ -549,7 +548,7 @@ router.get('/listar-dtes', async (req, res) => {
             LEFT JOIN dte_seguimiento ds ON f.id = ds.factura_id
             WHERE ${whereClause}
             ORDER BY f.id DESC, ds.fecha_creacion DESC
-            LIMIT ${paramIndex++} OFFSET ${paramIndex++}
+            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
         `;
 
     queryParams.push(limit, offset);
@@ -583,7 +582,7 @@ router.get('/listar-dtes', async (req, res) => {
 });
 
 // Reenviar DTE al SII
-router.post('/reenviar-dte/:factura_id', async (req, res) => {
+router.post('/reenviar-dte/:factura_id', authMiddleware, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -654,7 +653,7 @@ router.post('/reenviar-dte/:factura_id', async (req, res) => {
 });
 
 // Dashboard de estadísticas DTE
-router.get('/dashboard-stats', async (req, res) => {
+router.get('/dashboard-stats', authMiddleware, async (req, res) => {
   try {
     const statsQuery = `
             WITH estadisticas_dte AS (
@@ -760,7 +759,7 @@ async function simularReenvioSII(factura) {
 // ===== CONFIGURACIÓN DE EMPRESA =====
 
 // Obtener configuración actual
-router.get('/configuracion-empresa', async (req, res) => {
+router.get('/configuracion-empresa', authMiddleware, async (req, res) => {
   try {
     const query = 'SELECT * FROM sii_configuracion WHERE activo = true ORDER BY id DESC LIMIT 1';
     const result = await pool.query(query);
@@ -780,7 +779,7 @@ router.get('/configuracion-empresa', async (req, res) => {
 });
 
 // Actualizar configuración de empresa
-router.put('/configuracion-empresa', async (req, res) => {
+router.put('/configuracion-empresa', authMiddleware, async (req, res) => {
   try {
     const {
       rut_empresa, nombre_empresa, giro_empresa, actividad_economica,
@@ -788,25 +787,38 @@ router.put('/configuracion-empresa', async (req, res) => {
     } = req.body;
 
     // Validaciones básicas
-    if (!rut_empresa || !nombre_empresa) {
+    if (!rut_empresa || !nombre_empresa || !giro_empresa) {
       return res.status(400).json({
         success: false,
-        error: 'RUT y nombre de empresa son obligatorios'
+        error: 'RUT, nombre y giro de empresa son obligatorios'
       });
     }
 
     const query = `
-            INSERT INTO sii_configuracion (
-                rut_empresa, nombre_empresa, giro_empresa, actividad_economica,
-                direccion, comuna, ciudad, telefono, email, ambiente,
-                fecha_actualizacion
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-            RETURNING *
-        `;
+      INSERT INTO sii_configuracion (
+        rut_empresa, nombre_empresa, giro_empresa, actividad_economica,
+        direccion, comuna, ciudad, telefono, email, ambiente, fecha_actualizacion, activo
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), true)
+      ON CONFLICT (rut_empresa)
+      DO UPDATE SET
+        nombre_empresa = EXCLUDED.nombre_empresa,
+        giro_empresa = EXCLUDED.giro_empresa,
+        actividad_economica = EXCLUDED.actividad_economica,
+        direccion = EXCLUDED.direccion,
+        comuna = EXCLUDED.comuna,
+        ciudad = EXCLUDED.ciudad,
+        telefono = EXCLUDED.telefono,
+        email = EXCLUDED.email,
+        ambiente = EXCLUDED.ambiente,
+        fecha_actualizacion = NOW(),
+        activo = true
+      RETURNING *
+    `;
 
     const result = await pool.query(query, [
-      rut_empresa, nombre_empresa, giro_empresa, actividad_economica,
-      direccion, comuna, ciudad, telefono, email, ambiente || 'certificacion'
+      rut_empresa, nombre_empresa, giro_empresa, actividad_economica || null,
+      direccion || null, comuna || null, ciudad || null, telefono || null,
+      email || null, ambiente || 'certificacion'
     ]);
 
     res.json({

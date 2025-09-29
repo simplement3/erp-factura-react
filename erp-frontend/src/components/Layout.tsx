@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../features/auth/AuthContext';
+import { useAuth } from '../features/auth/useAuth'; // Actualizado
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/solid';
 
-function Layout() {
+interface LayoutProps {
+    children?: ReactNode; // Añadido para soportar children
+}
+
+function Layout({ children }: LayoutProps) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -130,7 +134,7 @@ function Layout() {
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                <Outlet />
+                {children || <Outlet />}
             </main>
         </div>
     );

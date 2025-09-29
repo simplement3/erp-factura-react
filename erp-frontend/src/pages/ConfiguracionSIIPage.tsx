@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { getSIIConfig, updateSIIConfig } from '../api/apiClient';
-import { SIIConfig } from '../api/apiClient';
 
 const siiConfigSchema = z.object({
     rut_empresa: z.string().min(1, 'RUT es obligatorio'),
@@ -23,7 +22,7 @@ type SIIConfigFormData = z.infer<typeof siiConfigSchema>;
 
 function ConfiguracionSIIPage() {
     const queryClient = useQueryClient();
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, error } = useQuery({
         queryKey: ['siiConfig'],
         queryFn: getSIIConfig,
     });
@@ -47,6 +46,10 @@ function ConfiguracionSIIPage() {
     };
 
     if (isLoading) return <div className="custom-spinner mx-auto mt-10"></div>;
+    if (error) {
+        toast.error('Error al cargar configuración');
+        return <div className="text-red-600 text-center">Error al cargar configuración</div>;
+    }
 
     return (
         <div className="max-w-2xl mx-auto">
@@ -56,7 +59,8 @@ function ConfiguracionSIIPage() {
                     <label className="block text-sm font-medium text-gray-700">RUT Empresa</label>
                     <input
                         {...register('rut_empresa')}
-                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.rut_empresa ? 'border-red-500' : ''}`}
+                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.rut_empresa ? 'border-red-500' : ''
+                            }`}
                     />
                     {errors.rut_empresa && <p className="mt-1 text-sm text-red-600">{errors.rut_empresa.message}</p>}
                 </div>
@@ -64,7 +68,8 @@ function ConfiguracionSIIPage() {
                     <label className="block text-sm font-medium text-gray-700">Nombre Empresa</label>
                     <input
                         {...register('nombre_empresa')}
-                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.nombre_empresa ? 'border-red-500' : ''}`}
+                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.nombre_empresa ? 'border-red-500' : ''
+                            }`}
                     />
                     {errors.nombre_empresa && <p className="mt-1 text-sm text-red-600">{errors.nombre_empresa.message}</p>}
                 </div>
@@ -107,7 +112,8 @@ function ConfiguracionSIIPage() {
                     <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input
                         {...register('email')}
-                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.email ? 'border-red-500' : ''}`}
+                        className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.email ? 'border-red-500' : ''
+                            }`}
                     />
                     {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
                 </div>
