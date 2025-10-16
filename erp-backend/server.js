@@ -8,7 +8,7 @@ require('dotenv').config({ debug: true }); // Habilitar debug para dotenv
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: 'https://erp-factura-react.vercel.app' }));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
